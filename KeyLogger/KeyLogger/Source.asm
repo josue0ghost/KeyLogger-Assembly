@@ -39,7 +39,9 @@ program:
 		keylogger:
 
 		invoke StdIn, addr key, 1
-		mov ah, 01h						;lee entrada del teclado
+
+		;imprimir
+		;mov ah, 01h						;lee entrada del teclado
 		;int 21h
 
 		mov al, key						;moviendo la entrada a la variable "key"
