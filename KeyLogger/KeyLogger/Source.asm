@@ -13,7 +13,6 @@ includelib \masm32\lib\kernel32.lib
 includelib \masm32\lib\masm32.lib
 includelib \masm32\lib\user32.lib
 
-WinMain proto :DWORD, :DWORD, :DWORD, :DWORD
 ;data segment
 .data
 	directorio byte "keylogger.txt",NULL
@@ -28,17 +27,21 @@ WinMain proto :DWORD, :DWORD, :DWORD, :DWORD
 	consola dd ?
 	key dd ?
 	bytesw dd ?
+
+	kb1	db 256 dup(?)
+	kb2	db 256 dup(?)
 ;code segment
+.stack
 .code
 program:
 	call main
 
 	main proc
-		;invoke FreeConsole
+		
 		invoke GetConsoleWindow
 		mov consola, eax
-
-		invoke ShowWindow,consola,0
+		;0 = HIDE	5 = SHOW
+		invoke ShowWindow,consola,5
 
 		mov edx, offset directorio
 		
@@ -52,9 +55,10 @@ program:
 		keylogger:
 
 		call crt__getch
+		
 		mov key, eax
 		cmp eax, 0
-		je seguir
+		je keylogger
 		
 		INVOKE CreateFile, addr directorio, GENERIC_WRITE OR GENERIC_READ, FILE_SHARE_READ OR FILE_SHARE_WRITE, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL,0
 		mov manejo, eax
@@ -62,13 +66,14 @@ program:
 		INVOKE WriteFile,manejo,addr key,1,addr bytesw,NULL
 		mov eax, manejo
 		INVOKE CloseHandle, eax
+		
 
 		mov ebx, key						;moviendo la entrada a la variable "key"
 		cmp ebx, 20h						;si es un espacio
 		jz ObtenerFH
 		cmp ebx, 0dh						;si es un ENTER
 		jz ObtenerFH
-		jmp seguir							;de lo contrario, sigue leyendo teclado
+		jmp keylogger
 
 		ObtenerFH:
 
@@ -78,8 +83,8 @@ program:
 
 		invoke GetDateFormat, 0,0, \
 		0, addr formatofecha, addr fechaBuf, 50
-		mov ebx, offset fechaBuf
-		mov byte ptr[ebx-1], " "	; reemplazamos todo lo nulo con espacios
+		;mov ebx, offset fechaBuf
+		;mov byte ptr[ebx-1], " "	; reemplazamos todo lo nulo con espacios
 
 		invoke GetTimeFormat, 0, 0, \
 		0, addr formatohora, addr horaBuf, 50
@@ -88,36 +93,14 @@ program:
 		INVOKE WriteFile,manejo,addr horaBuf,10,addr bytesw,NULL
 
 		invoke CloseHandle, manejo
-		
-		seguir:
+		;.Until 0
 		jmp keylogger
 
 
 		fin_programa:
+
 		invoke ExitProcess,0
 		ret
 	main endp
-
-	LeerArchivo PROC
-		;
-		; Reads an input file into a buffer.
-		; Receives: EAX = file handle, EDX = buffer offset,
-		; ECX = number of bytes to read
-		; Returns: If CF = 0, EAX = number of bytes read; if
-		; CF = 1, EAX contains the system error code returned
-		; by the GetLastError Win32 API function.
-		;--------------------------------------------------------
-		.data
-		ReadFromFile_1 DWORD ? ; number of bytes read
-		.code
-		INVOKE ReadFile,
-		eax, ; file handle
-		edx, ; buffer pointer
-		ecx, ; max bytes to read
-		ADDR ReadFromFile_1, ; number of bytes read
-		0 ; overlapped execution flag
-		mov eax,ReadFromFile_1
-		ret
-	LeerArchivo ENDP
 end program
 
