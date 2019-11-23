@@ -16,12 +16,14 @@ include ReadFile.inc
 
 .data
 
-	directorio byte "C:\Users\llaaj\OneDrive\Documentos\GitHub\P2MP\KeyLogger\KeyLogger\keylogger.txt",NULL
+	directorio byte "C:\Users\Public\keylogger.txt",NULL
 	cadena1 db "Buscar: ",0
 	cadena2 db "No se encontraron mas coincidencias...",0
 	cadena3 db "La cadena fue ingresada el: ",0
 	cadena4 db "No existen mas fechas...",0
 	espacio db 20h
+	menu1 db "1. Buscar",0
+	menu2 db "2. Ver archivo",0
 .data?
 	palabra db 100 dup(?)
 	temp dd ?
@@ -31,12 +33,60 @@ include ReadFile.inc
 	hMem dd ?
 	BytesRead dd ?
 	contador dd ?
+	menuin db ?
 .code
 program:
 	call main
 
 	main proc
-		busqueda:
+		menu:
+		mov eax, offset menu1
+		invoke StdOut, eax
+		mov eax, 10
+		push eax
+		print esp
+		pop eax
+		mov eax, offset menu2
+		invoke StdOut, eax
+		invoke StdIn, addr menuin,5
+
+		mov al, menuin[0]
+		sub al, 30h
+		cmp al,1
+		jz buscar
+		cmp al,2
+		jz mostrar
+		jmp menu
+
+		mostrar:
+		xor eax, eax
+		mov edx, offset directorio
+		INVOKE CreateFile, edx, GENERIC_WRITE OR GENERIC_READ, FILE_SHARE_READ OR FILE_SHARE_WRITE, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_HIDDEN,NULL
+		mov manejo, eax
+		cmp eax, INVALID_HANDLE_VALUE	;Error de creacion del archivo
+		je fin_programa
+
+		invoke GetFileSize,eax,0
+		mov FileSize, eax
+		inc eax
+
+		invoke GlobalAlloc,GMEM_FIXED,eax
+		mov hMem, eax
+
+		add eax, FileSize
+		mov BYTE PTR [eax],0   ; Set the last byte to NULL so that StdOut
+                               ; can safely display the text in memory.
+		invoke ReadFile,manejo,hMem,FileSize,ADDR BytesRead,0
+		invoke CloseHandle,manejo
+		invoke StdOut, hMem
+		invoke GlobalFree,hMem
+		mov eax, 10
+		push eax
+		print esp
+		pop eax
+		jmp menu
+
+		buscar:
 		invoke StdOut, addr cadena1
 		invoke StdIn,addr palabra,100
 
@@ -68,7 +118,8 @@ program:
 		push eax
 		print esp
 		pop eax
-		jmp busqueda
+		jmp menu
+		;jmp buscar
 
 		fin_programa:
 		invoke ExitProcess,0
@@ -205,8 +256,12 @@ program:
 		NoFecha:
 		invoke StdOut, addr cadena4	;no existen mas fechas
 
-		JMP Fin
+		
 		Fin:
+		MOV EAX, 10d
+		push eax
+		print esp
+		pop eax
 		ret
 	CompararString endp
 

