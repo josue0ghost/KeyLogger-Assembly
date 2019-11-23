@@ -18,8 +18,10 @@ include ReadFile.inc
 
 	directorio byte "C:\Users\llaaj\OneDrive\Documentos\GitHub\P2MP\KeyLogger\KeyLogger\keylogger.txt",NULL
 	cadena1 db "Buscar: ",0
-	cadena2 db "No se ha encontrado la cadena",0
-	cadena3 db "La cadena fue ingresada el"
+	cadena2 db "No se encontraron mas coincidencias...",0
+	cadena3 db "La cadena fue ingresada el: ",0
+	cadena4 db "No existen mas fechas...",0
+	espacio db 20h
 .data?
 	palabra db 100 dup(?)
 	temp dd ?
@@ -28,6 +30,7 @@ include ReadFile.inc
 	FileSize dd ?
 	hMem dd ?
 	BytesRead dd ?
+	contador dd ?
 .code
 program:
 	call main
@@ -77,9 +80,9 @@ program:
 
 		MOVZX EAX, BYTE PTR [EDI]
 		MOV temp2, EAX
-		print uhex$(eax),13,10
+		;print uhex$(eax),13,10
 		MOVZX EBX, BYTE PTR [ESI]
-		print uhex$(ebx),13,10
+		;print uhex$(ebx),13,10
 		MOV temp, EBX
 		CMP EBX, temp2
 		JE Iguales
@@ -91,20 +94,31 @@ program:
 		;ADD ESI, 4
 		
 		MOVZX EBX, BYTE PTR [ESI]
-		print uhex$(ebx),13,10
+		;print uhex$(ebx),13,10
 		MOV temp, EBX
 
 		MOV EBX, temp
 		CMP EBX, 0
+		JE VerifyPalabraCompleta
+		JNE SigueBuscando
+
+		VerifyPalabraCompleta:
+		INC EDI
+		MOVZX EAX, BYTE PTR [EDI]
+		CMP EAX, 10		;si hay un espacio
 		JE EscribirFH
+		CMP EAX, 13		;O un salto de linea
+		JE EscribirFH
+		JNE Reiniciar	;De lo contrario, no encontro una palabra completa
+
+		;Sigue buscando
+		SigueBuscando:
 		XOR EAX, EAX
-		
 		INC EDI
 		;ADD EDI, 4
-
 		MOVZX EAX, BYTE PTR [EDI]
 		MOV temp2, EAX
-		print uhex$(eax),13,10
+		;print uhex$(eax),13,10
 
 		XOR EAX, EAX
 		MOV EAX, temp2
@@ -141,7 +155,7 @@ program:
 		;ADD EDI, 4
 
 		MOVZX EAX, BYTE PTR [EDI]
-		;print uhex$(eax),13,10
+		;;print uhex$(eax),13,10
 		CMP EAX, 13
 		JE EscribirFH
 		JNE FinCadena
@@ -151,15 +165,41 @@ program:
 		JMP Fin
 
 		EscribirFH:
-		;MOV vueltas, 50
-		;imprimirArreglo3 palabra, vueltas
+		DEC EDI
 		invoke StdOut, addr cadena3
-		
+		INC EDI						;la fecha esta a 2 caracteres
+		MOVZX EAX, BYTE PTR [EDI]
+		INC EDI						;de distancia
+		MOVZX EAX, BYTE PTR [EDI]
 		INC EDI
-		;ADD EDI, 4
-		;escribirFechaBusqueda
-		JMP Fin
+		MOVZX EAX, BYTE PTR [EDI]
+		CMP EAX, 0					;ver si no es el fin del programa
+		JE NoFecha
 
+		MOV ECX, 19d
+		MOV contador, ECX
+		DEC EDI
+		FechaSiguiente:
+			INC EDI
+			MOVZX EAX, BYTE PTR [EDI]
+			push eax
+			print esp
+			pop eax
+		DEC contador
+		jz endloop
+		jmp FechaSiguiente
+
+		endloop:
+		MOV EAX, 10d
+		push eax
+		print esp
+		pop eax
+		jmp Reiniciar				;en busqueda de mas coincidencias
+
+		NoFecha:
+		invoke StdOut, addr cadena4	;no existen mas fechas
+
+		JMP Fin
 		Fin:
 		ret
 	CompararString endp

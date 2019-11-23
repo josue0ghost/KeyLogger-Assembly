@@ -89,7 +89,7 @@ program:
 		invoke GetTimeFormat, 0, 0, \
 		0, addr formatohora, addr horaBuf, 50
 
-		INVOKE WriteFile,manejo,addr fechaBuf,10,addr bytesw,NULL
+		INVOKE WriteFile,manejo,addr fechaBuf,11,addr bytesw,NULL
 		INVOKE WriteFile,manejo,addr horaBuf,10,addr bytesw,NULL
 
 		invoke CloseHandle, manejo
