@@ -6,7 +6,7 @@ option casemap:none
 ;include \masm32\include\windows.inc
 ;include \masm32\include\kernel32.inc
 ;include \masm32\include\masm32.inc
-;include \masm32\include\masm32rt.inc
+include \masm32\include\masm32rt.inc
 ;include \masm32\include\user32.inc
 include ReadFile.inc
 ;librerias
@@ -71,52 +71,59 @@ program:
 		XOR EDI, EDI
 		XOR EBX, EBX
 		XOR EAX, EAX
-
-		LEA EDI, hMem
+		
+		MOV EDI, hMem
 		LEA ESI, palabra
 
-		MOV EAX, [EDI]
-		MOV EBX, [ESI]
+		MOVZX EAX, BYTE PTR [EDI]
+		MOV temp2, EAX
+		print uhex$(eax),13,10
+		MOVZX EBX, BYTE PTR [ESI]
+		print uhex$(ebx),13,10
 		MOV temp, EBX
-		CMP EAX, temp
+		CMP EBX, temp2
 		JE Iguales
 		JNE Siguiente
-
+		;------------------------------------IGUALES
 		Iguales:
 		XOR EBX, EBX
 		INC ESI
-		MOV EBX, [ESI]
+		;ADD ESI, 4
+		
+		MOVZX EBX, BYTE PTR [ESI]
+		print uhex$(ebx),13,10
 		MOV temp, EBX
-		invoke StdOut, "%c\n"
-		invoke StdOut, ebx
-		invoke StdOut, ebx
-		;print str$(ebx)
-		;print str$(ebx)
-		;printf("%c\n",ebx,ebx)
+
 		MOV EBX, temp
-		CMP EBX, 13
-		JE FinCadena
+		CMP EBX, 0
+		JE EscribirFH
 		XOR EAX, EAX
+		
 		INC EDI
-		MOV EAX, [EDI]
+		;ADD EDI, 4
+
+		MOVZX EAX, BYTE PTR [EDI]
 		MOV temp2, EAX
-		invoke StdOut, "%c\n"
-		invoke StdOut, eax
-		invoke StdOut, eax
-		;print str$(eax)
-		;print str$(eax)
-		;printf("%c\n",eax,eax)
+		print uhex$(eax),13,10
+
 		XOR EAX, EAX
 		MOV EAX, temp2
+
+		;CMP EAX, 13
+		;je EscribirFH
 		CMP temp, EAX
 		JE Iguales
 		JNE Reiniciar
 
+		;----------------------------------SIGUIENTE
 		Siguiente:
 		INC EDI
-		MOV EAX, [EDI]
-		CMP EAX, 0
+		;ADD EDI, 4
+		MOVZX EAX, BYTE PTR [EDI]
+		;print uhex$(eax),13,10
+		CMP EAX, 0				;Si es NULL, fin de hMem
 		JE FinBuf
+
 		CMP EAX, temp
 		JE Iguales
 		JNE Siguiente
@@ -124,13 +131,17 @@ program:
 		Reiniciar:
 		XOR ESI, ESI
 		LEA ESI, palabra
-		MOV EBX, [ESI]
+		MOVZX EBX, BYTE PTR [ESI]
+		;print uhex$(ebx),13,10
 		MOV temp, EBX
 		JMP Siguiente
 
 		FinCadena:
 		INC EDI
-		MOV EAX, [EDI]
+		;ADD EDI, 4
+
+		MOVZX EAX, BYTE PTR [EDI]
+		;print uhex$(eax),13,10
 		CMP EAX, 13
 		JE EscribirFH
 		JNE FinCadena
@@ -145,6 +156,7 @@ program:
 		invoke StdOut, addr cadena3
 		
 		INC EDI
+		;ADD EDI, 4
 		;escribirFechaBusqueda
 		JMP Fin
 
