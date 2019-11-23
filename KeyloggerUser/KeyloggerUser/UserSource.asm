@@ -36,6 +36,7 @@ program:
 	call main
 
 	main proc
+		busqueda:
 		invoke StdOut, addr cadena1
 		invoke StdIn,addr palabra,100
 
@@ -62,6 +63,12 @@ program:
 		call CompararString
 
 		invoke GlobalFree,hMem
+
+		mov eax, 10
+		push eax
+		print esp
+		pop eax
+		jmp busqueda
 
 		fin_programa:
 		invoke ExitProcess,0
@@ -104,9 +111,9 @@ program:
 		VerifyPalabraCompleta:
 		INC EDI
 		MOVZX EAX, BYTE PTR [EDI]
-		CMP EAX, 10		;si hay un espacio
+		CMP EAX, 20h		;si hay un espacio
 		JE EscribirFH
-		CMP EAX, 13		;O un salto de linea
+		CMP EAX, 13d		;O un salto de linea
 		JE EscribirFH
 		JNE Reiniciar	;De lo contrario, no encontro una palabra completa
 
