@@ -61,7 +61,6 @@ program:
 
 		call CompararString
 
-		invoke StdOut,hMem
 		invoke GlobalFree,hMem
 
 		fin_programa:
