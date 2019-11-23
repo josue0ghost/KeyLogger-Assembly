@@ -184,13 +184,13 @@ program:
 		MOV temp, EBX				;temp = ebx
 		JMP Siguiente
 
-		;FinCadena:
-		;INC EDI						
-;
-		;MOVZX EAX, BYTE PTR [EDI]	;fileBuffer[i+1]
-		;CMP EAX, 13
-		;JE EscribirFH
-		;JNE FinCadena
+		FinCadena:
+		INC EDI						
+
+		MOVZX EAX, BYTE PTR [EDI]	;fileBuffer[i+1]
+		CMP EAX, 13
+		JE EscribirFH
+		JNE FinCadena
 
 		FinBuf:
 		invoke StdOut, addr cadena2	;"No se encontraron mas coincidencias..."
@@ -206,7 +206,7 @@ program:
 
 		MOV ECX, 19d
 		MOV contador, ECX
-		DEC EDI						;fileBuffer[i-1]
+		;DEC EDI						;fileBuffer[i-1]
 		FechaSiguiente:
 			INC EDI		
 			MOVZX EAX, BYTE PTR [EDI]	;eax = fileBuffer[i+1]
