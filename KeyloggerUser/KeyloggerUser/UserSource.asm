@@ -1,62 +1,51 @@
 .386
-;model
-.model flat, stdcall				;flat es como small
+.model flat, stdcall
 option casemap:none
-;includes
-;include \masm32\include\windows.inc
-;include \masm32\include\kernel32.inc
-;include \masm32\include\masm32.inc
+
 include \masm32\include\masm32rt.inc
-;include \masm32\include\user32.inc
 include ReadFile.inc
-;librerias
-;includelib \masm32\lib\kernel32.lib
-;includelib \masm32\lib\masm32.lib
-;includelib \masm32\lib\user32.lib
 
 .data
-
 	directorio byte "C:\Users\Public\keylogger.txt",NULL
 	cadena1 db "Buscar: ",0
 	cadena2 db "No se encontraron mas coincidencias...",0
 	cadena3 db "La cadena fue ingresada el: ",0
 	cadena4 db "No existen mas fechas...",0
-	espacio db 20h
 	menu1 db "1. Buscar",0
 	menu2 db "2. Ver archivo",0
 .data?
-	palabra db 100 dup(?)
-	temp dd ?
-	temp2 dd ?
-	manejo dd ?
-	FileSize dd ?
-	hMem dd ?
-	BytesRead dd ?
-	contador dd ?
-	menuin db ?
+	palabra db 100 dup(?)	;palabra ingresada para busqueda
+	temp dd ?				;temporales para el mapeo de la palabra
+	temp2 dd ?				;ingresada y el buffer del archivo
+	manejo dd ?				;handler del archivo
+	FileSize dd ?			;tamanio del archivo
+	fileBuffer dd ?				;texto del archivo
+	BytesRead dd ?			;bytes leidos
+	contador dd ?			;contador para impresion de hora y fecha
+	menuin db ?				;entrada del menu
 .code
 program:
 	call main
 
 	main proc
 		menu:
-		mov eax, offset menu1
-		invoke StdOut, eax
-		mov eax, 10
+		mov eax, offset menu1		
+		invoke StdOut, eax			;"1. Buscar"
+		mov eax, 10					;fin de linea
 		push eax
-		print esp
+		print esp					;print extended stack pointer
 		pop eax
-		mov eax, offset menu2
+		mov eax, offset menu2		;"2. Ver archivo"
 		invoke StdOut, eax
-		invoke StdIn, addr menuin,5
+		invoke StdIn, addr menuin,5	;entrada del menu
 
-		mov al, menuin[0]
-		sub al, 30h
-		cmp al,1
-		jz buscar
-		cmp al,2
-		jz mostrar
-		jmp menu
+		mov al, menuin[0]			;mov del primer caracter del buffer
+		sub al, 30h					;y obtencion de codigo ASCII
+		cmp al,1					;Si '1' fue ingresado
+		jz buscar					;Algoritmo de busqueda
+		cmp al,2					;Si '2' fue ingresado
+		jz mostrar					;Algoritmo de impresion de texto
+		jmp menu					;default muestra menu nuevamente
 
 		mostrar:
 		xor eax, eax
@@ -68,27 +57,29 @@ program:
 
 		invoke GetFileSize,eax,0
 		mov FileSize, eax
-		inc eax
+		inc eax						;para una lectura apropiada
 
 		invoke GlobalAlloc,GMEM_FIXED,eax
-		mov hMem, eax
+		mov fileBuffer, eax
 
 		add eax, FileSize
-		mov BYTE PTR [eax],0   ; Set the last byte to NULL so that StdOut
-                               ; can safely display the text in memory.
-		invoke ReadFile,manejo,hMem,FileSize,ADDR BytesRead,0
+		mov BYTE PTR [eax],0		;Hace nulo el ultimo byte
+									;Asi se puede mostrar con StdOut
+		invoke ReadFile,manejo,fileBuffer,FileSize,ADDR BytesRead,0
 		invoke CloseHandle,manejo
-		invoke StdOut, hMem
-		invoke GlobalFree,hMem
+		invoke StdOut, fileBuffer			;impresion del archivo
+		invoke GlobalFree,fileBuffer		;libera el espacio de memoria
+		
 		mov eax, 10
 		push eax
-		print esp
+		print esp					;imprime un salto de linea
 		pop eax
+
 		jmp menu
 
 		buscar:
-		invoke StdOut, addr cadena1
-		invoke StdIn,addr palabra,100
+		invoke StdOut, addr cadena1		;"Buscar: "
+		invoke StdIn,addr palabra,100	;Palabra ingresada
 
 		mov edx, offset directorio
 		INVOKE CreateFile, edx, GENERIC_WRITE OR GENERIC_READ, FILE_SHARE_READ OR FILE_SHARE_WRITE, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_HIDDEN,NULL
@@ -98,28 +89,27 @@ program:
 
 		invoke GetFileSize,eax,0
 		mov FileSize, eax
-		inc eax
+		inc eax							;para poder hacer una lectura correcta
 
 		invoke GlobalAlloc,GMEM_FIXED,eax
-		mov hMem, eax
+		mov fileBuffer, eax
 
 		add eax, FileSize
-		mov BYTE PTR [eax],0   ; Set the last byte to NULL so that StdOut
-                               ; can safely display the text in memory.
+		mov BYTE PTR [eax],0		;Hace nulo el ultimo byte
+									;Asi se puede mostrar con StdOut
 
-		invoke ReadFile,manejo,hMem,FileSize,ADDR BytesRead,0
+		invoke ReadFile,manejo,fileBuffer,FileSize,ADDR BytesRead,0
 		invoke CloseHandle,manejo
 
-		call CompararString
+		call CompararString			;Compara letra por letra hasta encontrar las demás fechas
 
-		invoke GlobalFree,hMem
+		invoke GlobalFree,fileBuffer
 
 		mov eax, 10
 		push eax
-		print esp
+		print esp					;salto de linea
 		pop eax
 		jmp menu
-		;jmp buscar
 
 		fin_programa:
 		invoke ExitProcess,0
@@ -132,158 +122,118 @@ program:
 		XOR EBX, EBX
 		XOR EAX, EAX
 		
-		MOV EDI, hMem
-		LEA ESI, palabra
+		MOV EDI, fileBuffer				;Indice destino = archivo leido
+		LEA ESI, palabra			;indice fuente = lectura del archivo
 
-		MOVZX EAX, BYTE PTR [EDI]
-		MOV temp2, EAX
-		;print uhex$(eax),13,10
-		MOVZX EBX, BYTE PTR [ESI]
-		;print uhex$(ebx),13,10
-		MOV temp, EBX
-		CMP EBX, temp2
+		MOVZX EAX, BYTE PTR [EDI]	;EAX = fileBuffer[0]
+		MOV temp2, EAX				;var temp = eax
+		MOVZX EBX, BYTE PTR [ESI]	;EbX = palabra_ingresada[0]
+		MOV temp, EBX				;var temp = ebx
+		CMP EBX, temp2				;Si fileBuffer[0] = palabra_ingresada[0]
 		JE Iguales
 		JNE Siguiente
-		;------------------------------------IGUALES
+
+		;------------------------------------IGUALES----------------------------------
 		Iguales:
 		XOR EBX, EBX
-		INC ESI
-		;ADD ESI, 4
+		INC ESI						
 		
-		MOVZX EBX, BYTE PTR [ESI]
-		;print uhex$(ebx),13,10
-		MOV temp, EBX
+		MOVZX EBX, BYTE PTR [ESI]	;palabra_ingresada[j+1]
+		MOV temp, EBX				;temp = ebx
 
-		MOV EBX, temp
-		CMP EBX, 0
-		JE VerifyPalabraCompleta
-		JNE SigueBuscando
+		CMP EBX, 0					;si palabra_ingresada[i] = 0 entonces
+									;ha terminado de recorrer las letras de la palabra
+		JE VerifyPalabraCompleta	;hay que verificar que evaluo una palabra completa valida
+		JNE SigueBuscando			;de lo contrario, seguira buscando palabras validas
 
 		VerifyPalabraCompleta:
-		INC EDI
-		MOVZX EAX, BYTE PTR [EDI]
-		CMP EAX, 20h		;si hay un espacio
+		INC EDI						
+		MOVZX EAX, BYTE PTR [EDI]	;eax = fileBuffer[i+1]
+		CMP EAX, 20h				;si hay un espacio
 		JE EscribirFH
-		CMP EAX, 13d		;O un salto de linea
-		JE EscribirFH
-		JNE Reiniciar	;De lo contrario, no encontro una palabra completa
+		CMP EAX, 13d				;O un salto de linea
+		JE EscribirFH				;la palabra fue valida y procede a buscar la hora y fecha
+		JNE Reiniciar				;De lo contrario
 
-		;Sigue buscando
 		SigueBuscando:
 		XOR EAX, EAX
+		
 		INC EDI
-		;ADD EDI, 4
-		MOVZX EAX, BYTE PTR [EDI]
-		MOV temp2, EAX
-		;print uhex$(eax),13,10
+		MOVZX EAX, BYTE PTR [EDI]	;eax = fileBuffer[i+1]
+		MOV temp2, EAX				;temp2 = eax
 
-		XOR EAX, EAX
-		MOV EAX, temp2
-
-		;CMP EAX, 13
-		;je EscribirFH
-		CMP temp, EAX
+		CMP temp, EAX				;si palabra_ingresada[j] = fileBuffer[i]
 		JE Iguales
 		JNE Reiniciar
 
-		;----------------------------------SIGUIENTE
+		;----------------------------------SIGUIENTE----------------------------------------
 		Siguiente:
 		INC EDI
-		;ADD EDI, 4
-		MOVZX EAX, BYTE PTR [EDI]
-		;print uhex$(eax),13,10
-		CMP EAX, 0				;Si es NULL, fin de hMem
+		MOVZX EAX, BYTE PTR [EDI]	;eax = fileBuffer[i+1]
+		CMP EAX, 0					;Si es NULL, fin de fileBuffer
 		JE FinBuf
 
-		CMP EAX, temp
+		CMP EAX, temp				;Si fileBuffer[i] = palabra_ingresada[j]
 		JE Iguales
 		JNE Siguiente
 
 		Reiniciar:
 		XOR ESI, ESI
-		LEA ESI, palabra
-		MOVZX EBX, BYTE PTR [ESI]
-		;print uhex$(ebx),13,10
-		MOV temp, EBX
+		LEA ESI, palabra			;reinicia el apuntador de la palabra
+		MOVZX EBX, BYTE PTR [ESI]	;ebx = palabra_ingresada[0]
+		MOV temp, EBX				;temp = ebx
 		JMP Siguiente
 
-		FinCadena:
-		INC EDI
-		;ADD EDI, 4
-
-		MOVZX EAX, BYTE PTR [EDI]
-		;;print uhex$(eax),13,10
-		CMP EAX, 13
-		JE EscribirFH
-		JNE FinCadena
+		;FinCadena:
+		;INC EDI						
+;
+		;MOVZX EAX, BYTE PTR [EDI]	;fileBuffer[i+1]
+		;CMP EAX, 13
+		;JE EscribirFH
+		;JNE FinCadena
 
 		FinBuf:
-		invoke StdOut, addr cadena2
+		invoke StdOut, addr cadena2	;"No se encontraron mas coincidencias..."
 		JMP Fin
 
 		EscribirFH:
-		DEC EDI
 		invoke StdOut, addr cadena3
 		INC EDI						;la fecha esta a 2 caracteres
-		MOVZX EAX, BYTE PTR [EDI]
 		INC EDI						;de distancia
-		MOVZX EAX, BYTE PTR [EDI]
-		INC EDI
-		MOVZX EAX, BYTE PTR [EDI]
+		MOVZX EAX, BYTE PTR [EDI]	;fileBuffer[i+1]
 		CMP EAX, 0					;ver si no es el fin del programa
 		JE NoFecha
 
 		MOV ECX, 19d
 		MOV contador, ECX
-		DEC EDI
+		DEC EDI						;fileBuffer[i-1]
 		FechaSiguiente:
-			INC EDI
-			MOVZX EAX, BYTE PTR [EDI]
+			INC EDI		
+			MOVZX EAX, BYTE PTR [EDI]	;eax = fileBuffer[i+1]
 			push eax
-			print esp
+			print esp				;print extended stack pointer
 			pop eax
-		DEC contador
+		DEC contador	
+
 		jz endloop
 		jmp FechaSiguiente
 
 		endloop:
 		MOV EAX, 10d
 		push eax
-		print esp
+		print esp					;print extended stack pointer
 		pop eax
 		jmp Reiniciar				;en busqueda de mas coincidencias
 
 		NoFecha:
 		invoke StdOut, addr cadena4	;no existen mas fechas
-
+									;esto pasaría en el caso de que se intentara leer espacio nulo
 		
 		Fin:
 		MOV EAX, 10d
 		push eax
-		print esp
+		print esp					;print extended stack pointer
 		pop eax
 		ret
 	CompararString endp
-
-	LeerArchivo PROC
-		;
-		; Reads an input file into a buffer.
-		; Receives: EAX = file handle, EDX = buffer offset,
-		; ECX = number of bytes to read
-		; Returns: If CF = 0, EAX = number of bytes read; if
-		; CF = 1, EAX contains the system error code returned
-		; by the GetLastError Win32 API function.
-		;--------------------------------------------------------
-		.data
-		ReadFromFile_1 DWORD ? ; number of bytes read
-		.code
-		INVOKE ReadFile,
-		eax, ; file handle
-		edx, ; buffer pointer
-		ecx, ; max bytes to read
-		ADDR ReadFromFile_1, ; number of bytes read
-		0 ; overlapped execution flag
-		mov eax,ReadFromFile_1
-		ret
-	LeerArchivo ENDP
 end program
